@@ -6,6 +6,57 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Always *should* be set to the current string
+// being parsed, as such more detailed error info
+// can be derived.
+static const char* ERROR_STRING = NULL;
+
+__attribute__((noreturn)) static void parsing_error(const char* error_loc, const char* error) {
+    // If somebody(me) forgot to set ERROR_STRING or error_loc is NULL
+    if (error_loc < ERROR_STRING || ERROR_STRING == NULL || error_loc == NULL
+        || strlen(ERROR_STRING) + ERROR_STRING < error_loc) {
+        NO_CONTEXT:
+        char error_ext[32] = {0};
+        strncpy(error_ext, error, 31);
+
+        fprintf(stderr, "\nAn error has occured during proto file parsing.\nError details: %s\n Context: ```%s```", error, error_ext);
+        exit(2);
+    }
+
+    // Now we know they overlap, we can generate betting error details
+    const char* itr = ERROR_STRING;
+    int linecount = 0;
+    int columncount = 0;
+    const char* lastline = ERROR_STRING;
+    // This is safe as we know error_loc is inside of ERROR_STRING
+    while (itr != error_loc) {
+        if (*itr == '\n') {
+            linecount++;
+            columncount = 0;
+            lastline = itr;
+        }else columncount++;
+        itr++;
+    }
+    while (*itr && *itr != '\n')
+        itr++;
+
+
+
+    fprintf(stderr, "\nFile parsing error: line %d, column %d\nError details: %s\nError context: ", linecount, columncount, error);
+    if (lastline) {
+        fwrite(lastline, error_loc - lastline, 1, stderr);
+        fprintf(stderr, "\x1b[1;31m%c\x1b[0m", *error_loc);
+        fwrite(error_loc+1, itr - error_loc - 1, 1, stderr);
+        fprintf(stderr, "\n");
+    }
+
+
+    exit(1);
+}
+
+
+
+
 static struct ProtoList* proto_list_parse(const char** input, char list_mode);
 
 const char* skip_whitespace(const char* str) {
@@ -21,13 +72,13 @@ const char* skip_whitespace(const char* str) {
 
 static __always_inline enum ProtoNodeType assess_proto_node_type(const char* str) {
     if (*str == '\"') return PNT_str;
-    if (isdigit(*str)) return PNT_num;
+    if (isdigit(*str) || *str == '-') return PNT_num;
     if (isalpha(*str)) return PNT_obj;
     return PNT_UNKNOWN;
 }
 // No fact checking, just assume all valid
 static const char* absorb_number(const char* str) {
-    while (*str && (isdigit(*str) || isalnum(*str))) str++;
+    while (*str && (isdigit(*str) || isalnum(*str) || *str == '-')) str++;
     return str;
 }
 
@@ -42,10 +93,8 @@ static struct ProtoDict* proto_dict_parse(const char** input);
 struct ProtoNode* assess_and_parse_singular_object(const char** input) {
     const char* str = *input;
     enum ProtoNodeType type = assess_proto_node_type(str);
-    if (type == PNT_UNKNOWN) {
-        perror("Unknown node type\n");
-        exit(1);
-    }
+    if (type == PNT_UNKNOWN)
+        parsing_error(*input, "Unable to parse data type");
 
     struct ProtoNode* ret = calloc(1, sizeof(struct ProtoNode));
     ret->type = type;
@@ -55,10 +104,9 @@ struct ProtoNode* assess_and_parse_singular_object(const char** input) {
 
         size_t len = after - str;
 
-        if (len >= sizeof(ret->raw_data)) {
-            perror("Number too long\n");
-            exit(1);
-        }
+        if (len >= sizeof(ret->raw_data))
+            parsing_error(str, "Number too long");
+
         memcpy(ret->raw_data, str, len);
         ret->raw_data[len] = 0;
 
@@ -80,19 +128,15 @@ struct ProtoNode* assess_and_parse_singular_object(const char** input) {
         // Skip over the trailing double quote
         str += !!*str;
 
-        if (len >= sizeof(ret->raw_data)) {
-            perror("String too long\n");
-            exit(1);
-        }
+        if (len >= sizeof(ret->raw_data))
+            parsing_error(initial, "String too long");
         memcpy(ret->raw_data, initial, len);
     }
     else if (ret->type == PNT_obj) {
         const char* after_name = absorb_name(str);
         size_t len = after_name - str;
-        if (len >= sizeof(ret->object.name)) {
-            perror("Object name too long\n");
-            exit(1);
-        }
+        if (len >= sizeof(ret->object.name))
+            parsing_error(str, "Object name too long");
         memcpy(ret->object.name, str, len);
         ret->object.name[len] = 0;
 
@@ -108,26 +152,22 @@ struct ProtoNode* assess_and_parse_singular_object(const char** input) {
                     output = &ret->object.arguments;
 
                 case '[':
-                    if (*output != NULL) {
-                        perror("Object cannot have two sets of arguments or lists\n");
-                        exit(1);
-                    }
+                    if (*output != NULL)
+                        parsing_error(str, "Object cannot have two sets of arguments or lists");
 
                     *output = proto_list_parse(&str, list_mode);
                     break;
                 case '{':
-                    if (ret->object.attached_dict != NULL) {
-                        perror("Object cannot have two sets of attached dicts\n");
-                        exit(1);
-                    }
+                    if (ret->object.attached_dict != NULL)
+                        parsing_error(str, "Object cannot have two sets of attached dicts");
+
                     ret->object.attached_dict = proto_dict_parse(&str);
                 default: ;
             }
         }
-        if (ret->object.arguments == NULL) {
-            perror("Object must have arguments after them, although this argument list maybe empty.\n");
-            exit(1);
-        }
+        if (ret->object.arguments == NULL)
+            parsing_error(str, "Object must have arguments after them, although this argument list maybe empty");
+
     }
     *input = str;
     return ret;
@@ -144,10 +184,8 @@ static struct ProtoDict* proto_dict_parse(const char** input) {
         if (*str == '}') break;
         struct ProtoNode* key = assess_and_parse_singular_object(&str);
         str = skip_whitespace(str);
-        if (*str != ':') {
-            perror("Syntax error: dict is lacking a colon to indicate a key-value pair\n");
-            exit(1);
-        }
+        if (*str != ':')
+            parsing_error(str, "Syntax error: dict is lacking a colon to indicate a key-value pair");
         str++; // Skip colon
 
         str = skip_whitespace(str);
@@ -189,24 +227,18 @@ static struct ProtoList* proto_list_parse(const char** input, char list_mode) {
 
     while (*str) {
         if (*str == ']') {
-            if (list_mode == 0) break;
-
-            perror("List open brackets != list close bracket count\n");
-            exit(1);
+            if (list_mode != 0) parsing_error(str, "List open brackets != list close bracket count");
+            break;
         }
         else if (*str == ')') {
-            if (list_mode == 2) break;
-
-            perror("List open parenthesis != list close parenthesis count\n");
-            exit(1);
+            if (list_mode != 2) parsing_error(str, "List open parenthesis != list close parenthesis count");
+            break;
         }
         struct ProtoNode* element = assess_and_parse_singular_object(&str);
         str = skip_whitespace(str);
-        if (*str && (*str != ')' && *str != ']' && *str != ',')) {
-            // debug_print_proto_node(element, 1);
-            fprintf(stderr, "Unknown separator found in list: %c\n", *str);
-            exit(1);
-        }
+        if (*str && (*str != ')' && *str != ']' && *str != ','))
+            parsing_error(str, "Unknown separator found in list");
+
         // At this point if MUST be `,` '[' or '{'
 
         if (index >= 64) {
@@ -227,6 +259,8 @@ static struct ProtoList* proto_list_parse(const char** input, char list_mode) {
 }
 
 struct ProtoList* parse_proto_file(const char* str) {
+    ERROR_STRING = str;
+
     // All files by default are in list mode
     return proto_list_parse(&str, 1);
 }
@@ -316,3 +350,6 @@ void debug_print_proto_list(struct ProtoList* list, int level) {
     }
     if (list->next) debug_print_proto_list(list->next, level);
 }
+
+
+

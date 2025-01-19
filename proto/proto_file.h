@@ -49,14 +49,14 @@ enum ProtoNodeType{
 	PNT_obj
 };
 struct ProtoList{
-	struct Protonode* contents[64];
+	struct ProtoNode* contents[64];
 	
 	// Null unless size > 64
 	struct ProtoList* next;
 };
 struct ProtoDict{
-	struct Protonode* keys[64];
-	struct Protonode* values[64];
+	struct ProtoNode* keys[64];
+	struct ProtoNode* values[64];
 
 	// Null unless size > 64
 	struct ProtoDict* next;
@@ -72,7 +72,7 @@ struct ProtoObject{
 };
 
 // A proto node can NEVER contain Lists or Dicts, as these cannot be on their own
-struct Protonode{
+struct ProtoNode{
 	enum ProtoNodeType type;
 	union{
 		char raw_data[512]; // Used in num and str
@@ -83,11 +83,11 @@ struct Protonode{
 
 
 struct ProtoList* parse_proto_file(const char* str);
-struct Protonode* assess_and_parse_singular_object(const char** input);
-void free_proto_node(struct Protonode* node);
+struct ProtoNode* assess_and_parse_singular_object(const char** input);
+void free_proto_node(struct ProtoNode* node);
 void free_proto_list(struct ProtoList* list);
 void free_proto_dict(struct ProtoDict* dict);
 
 void debug_print_proto_dict(struct ProtoDict* list, int level);
 void debug_print_proto_list(struct ProtoList* list, int level);
-void debug_print_proto_node(struct Protonode* node, int level);
+void debug_print_proto_node(struct ProtoNode* node, int level);

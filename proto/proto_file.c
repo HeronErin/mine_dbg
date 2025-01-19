@@ -39,7 +39,7 @@ static const char* absorb_name(const char* str) {
 static struct ProtoDict* proto_dict_parse(const char** input);
 
 
-struct Protonode* assess_and_parse_singular_object(const char** input) {
+struct ProtoNode* assess_and_parse_singular_object(const char** input) {
     const char* str = *input;
     enum ProtoNodeType type = assess_proto_node_type(str);
     if (type == PNT_UNKNOWN) {
@@ -47,7 +47,7 @@ struct Protonode* assess_and_parse_singular_object(const char** input) {
         exit(1);
     }
 
-    struct Protonode* ret = calloc(1, sizeof(struct Protonode));
+    struct ProtoNode* ret = calloc(1, sizeof(struct ProtoNode));
     ret->type = type;
 
     if (type == PNT_num) {
@@ -61,7 +61,7 @@ struct Protonode* assess_and_parse_singular_object(const char** input) {
         }
         memcpy(ret->raw_data, str, len);
         ret->raw_data[len] = 0;
-        printf("\t%s\n", ret->raw_data);
+
         str = after;
     }
     else if (ret->type == PNT_str) {
@@ -71,8 +71,8 @@ struct Protonode* assess_and_parse_singular_object(const char** input) {
         const char* initial = str;
 
         // Skip over all content until an unescaped double quote is found
-        while (*str && !(*str == '\"' && !is_escaped)) {
-            is_escaped ^= *str == '\\';
+        while (*str && (*str != '\"' || is_escaped)) {
+            is_escaped = (*str == '\\') ? !is_escaped : false;
             str++;
         }
         size_t len = str - initial;
@@ -142,7 +142,7 @@ static struct ProtoDict* proto_dict_parse(const char** input) {
     const char* str = skip_whitespace(*input);
     while (*str) {
         if (*str == '}') break;
-        struct Protonode* key = assess_and_parse_singular_object(&str);
+        struct ProtoNode* key = assess_and_parse_singular_object(&str);
         str = skip_whitespace(str);
         if (*str != ':') {
             perror("Syntax error: dict is lacking a colon to indicate a key-value pair\n");
@@ -151,7 +151,7 @@ static struct ProtoDict* proto_dict_parse(const char** input) {
         str++; // Skip colon
 
         str = skip_whitespace(str);
-        struct Protonode* value = assess_and_parse_singular_object(&str);
+        struct ProtoNode* value = assess_and_parse_singular_object(&str);
         str = skip_whitespace(str);
 
         if (index >= 64) {
@@ -200,7 +200,7 @@ static struct ProtoList* proto_list_parse(const char** input, char list_mode) {
             perror("List open parenthesis != list close parenthesis count\n");
             exit(1);
         }
-        struct Protonode* element = assess_and_parse_singular_object(&str);
+        struct ProtoNode* element = assess_and_parse_singular_object(&str);
         str = skip_whitespace(str);
         if (*str && (*str != ')' && *str != ']' && *str != ',')) {
             // debug_print_proto_node(element, 1);
@@ -232,7 +232,7 @@ struct ProtoList* parse_proto_file(const char* str) {
 }
 
 
-void free_proto_node(struct Protonode* node) {
+void free_proto_node(struct ProtoNode* node) {
     switch (node->type) {
         case PNT_num:
         case PNT_str:
@@ -270,7 +270,7 @@ static void _print_level(int level) {
         printf("\t");
 }
 
-void debug_print_proto_node(struct Protonode* node, int level) {
+void debug_print_proto_node(struct ProtoNode* node, int level) {
     _print_level(level);
     switch (node->type) {
         case PNT_num:

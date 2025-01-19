@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "serde.h"
+
 
 int main(){
 	FILE *fp = fopen("/home/mitchell/Documents/mc_dbg/proto/packets/1.21.4.proto", "r");
@@ -14,12 +16,7 @@ int main(){
 	fread(buffer, len, 1, fp);
 	buffer[len] = '\0';
 	fclose(fp);
-
-
-	struct ProtoList* list =  parse_proto_file(buffer);
-	debug_print_proto_list(list, 0);
-	free_proto_list(list);
-
+	PacketSerde_from_proto(buffer);
 
 	free(buffer);
 	return 0;

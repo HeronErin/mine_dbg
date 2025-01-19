@@ -1,0 +1,34 @@
+# Minecraft format specification. 1.21.4
+# this is a custom format, made to be intuitive
+# and easy to parse
+
+
+namespace("handshake_c2s")[
+	packet(0x00, "handshake")[
+		varint("protocol version"),
+		string("server address", 255),
+		Ushort("port"),
+		varint_enum("next state"){
+			1: "status",
+			2: "login",
+			3: "transfer"
+		}
+	]
+],
+ namespace("status_s2c")[
+ 	packet(0x00, "status response")[
+ 		string("json", 32767)
+ 	],
+ 	packet(0x01, "pong response")[
+ 		long("timestamp")
+ 	]
+ ],
+ namespace("status_c2s")[
+ 	packet(0x00, "status request")[],
+ 	packet(0x01, "ping request")[
+ 		long("timestamp")
+ 	]
+ ]
+
+
+

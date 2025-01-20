@@ -52,11 +52,14 @@ features.
 --------------------------------------------------------------
 */
 #define PROTO_LIST_SEGMENT_SIZE 64
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 enum ProtoNodeType { PNT_UNKNOWN = 0, PNT_num, PNT_str, PNT_obj };
+enum NumberVariety { NV_INVALID, NV_INT, NV_FLOAT };
+
 struct ProtoList {
     struct ProtoNode *contents[PROTO_LIST_SEGMENT_SIZE];
 
@@ -98,7 +101,17 @@ void debug_print_proto_dict(const struct ProtoDict *dict, int level);
 void debug_print_proto_list(const struct ProtoList *list, int level);
 void debug_print_proto_node(struct ProtoNode *node, int level);
 
-char *unescape_string(const char *in);
+// Takes a string, handles escapes, makes a new unescaped string.
+// You take ownership of newly created string
+char *unescape_string(const char *str);
+struct ResultingNumber {
+    bool is_float;
+    union {
+        double d;
+        long long ll;
+    };
+};
+struct ResultingNumber proto_node_number(struct ProtoNode *node);
 
 static __always_inline void assert_proto_node_type(struct ProtoNode *node, enum ProtoNodeType type) {
     if (node->type != type) {
@@ -141,3 +154,16 @@ static __always_inline struct ProtoNode *get_argument_of_type(struct ProtoNode *
     }
     return arg;
 }
+
+// Callback used for proto_list_foreach.
+// Param 1: Current element
+// Param 2: Any state you wish to keep during iteration
+// Return: 0 for nothing, 1 to break out of loop
+typedef char (*ListCallback)(struct ProtoNode *, void **);
+// Loop over each element of list. Callback is called per element
+// State is passed to callback
+// Return: 1 if loop has been broken out of
+char proto_list_foreach(struct ProtoList *list, ListCallback callback, void **state);
+
+typedef char (*DictCallback)(struct ProtoNode *, struct ProtoNode *, void **);
+char proto_dict_foreach(struct ProtoDict *dict, DictCallback callback, void **state);

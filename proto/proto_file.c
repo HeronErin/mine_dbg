@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +17,7 @@ __attribute__((noreturn)) static void parsing_error(const char *error_loc, const
     // If somebody(me) forgot to set ERROR_STRING or error_loc is NULL
     if (error_loc < ERROR_STRING || ERROR_STRING == NULL || error_loc == NULL || strlen(ERROR_STRING) + ERROR_STRING < error_loc) {
         char error_ext[32] = {0};
-        strncpy(error_ext, error, 31);
+        strncpy(error_ext, error, 32 - 1);
 
         fprintf(stderr, "\nAn error has occurred during proto file parsing.\nError details: %s\n Context: ```%s```", error, error_ext);
         exit(2);
@@ -79,7 +80,7 @@ static __always_inline enum ProtoNodeType assess_proto_node_type(const char *str
 }
 // No fact checking, just assume all valid
 static const char *absorb_number(const char *str) {
-    while (*str && (isdigit(*str) || isalnum(*str) || *str == '-'))
+    while (*str && (isdigit(*str) || isalnum(*str) || *str == '-' || *str == '.'))
         str++;
     return str;
 }
@@ -214,6 +215,25 @@ static struct ProtoDict *proto_dict_parse(const char **input) {
     return dict;
 }
 
+
+char proto_list_foreach(struct ProtoList *list, ListCallback callback, void **state) {
+    for (int i = 0; i < PROTO_LIST_SEGMENT_SIZE && list->contents[i]; i++) {
+        if (callback(list->contents[i], state) == 1)
+            return 1;
+    }
+    if (list->next)
+        return proto_list_foreach(list->next, callback, state);
+    return 0;
+}
+char proto_dict_foreach(struct ProtoDict *dict, DictCallback callback, void **state) {
+    for (int i = 0; i < PROTO_LIST_SEGMENT_SIZE && dict->keys[i] && dict->values[i]; i++) {
+        if (callback(dict->keys[i], dict->values[i], state) == 1)
+            return 0;
+    }
+    if (dict->next)
+        return proto_dict_foreach(dict->next, callback, state);
+    return 0;
+}
 
 // list_mode of 0 is square bracket mode
 // list_mode of 1 is root mode (null terminated input)
@@ -360,6 +380,7 @@ void debug_print_proto_list(const struct ProtoList *list, int level) {
         debug_print_proto_list(list->next, level);
 }
 
+
 char *unescape_string(const char *in) {
     char *out = calloc(strlen(in) + 1, sizeof(char));
     char *out_ptr = out;
@@ -419,4 +440,57 @@ char *unescape_string(const char *in) {
         in++;
     }
     return out;
+}
+
+struct ResultingNumber proto_node_number(struct ProtoNode *node) {
+    assert(node->type == PNT_num);
+
+    char *number = node->raw_data;
+    bool is_negative = *number == '-';
+    number += is_negative;
+    if (!*number)
+        goto INVALID;
+
+
+    bool is_decimal = false;
+    for (char *itr = number; *itr; itr++)
+        if (*itr == '.') {
+            is_decimal = true;
+            break;
+        }
+    if (is_decimal) {
+        double d = strtod(number, NULL);
+        if (errno != 0)
+            goto INVALID;
+        return (struct ResultingNumber) {
+                .is_float = true,
+                .d = is_negative ? -d : d,
+        };
+    }
+
+
+    int base = 10;
+    if (number[0] == '0' && (number[1] == 'x' || number[1] == 'X')) {
+        number += 2;
+        if (!*number)
+            goto INVALID;
+        base = 16;
+    } else if (number[0] == '0' && number[1] == 'b') {
+        number += 2;
+        if (!*number)
+            goto INVALID;
+        base = 2;
+    }
+    errno = 0;
+    long long result = strtoll(number, NULL, base);
+    if (errno != 0)
+        goto INVALID;
+
+    return (struct ResultingNumber) {
+            .is_float = false,
+            .ll = is_negative ? -result : result,
+    };
+INVALID:
+    fprintf(stderr, "Cannot parse number: %s\n", node->raw_data);
+    exit(1);
 }

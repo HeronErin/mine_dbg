@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -g -I.
+CFLAGS = -g -I. -lz
 
 # Source files and target
 SRC = $(wildcard *.c)

@@ -16,9 +16,9 @@ int main() {
     fread(buffer, len, 1, fp);
     buffer[len] = '\0';
     fclose(fp);
-    // PacketSerde_from_proto(buffer);
+    PacketSerde_from_proto(buffer);
 
-    printf("%s\n", unescape_string("This is a test: \\X6a!"));
+    // printf("%s\n", unescape_string("This is a test: \\X6a!"));
 
 
     free(buffer);

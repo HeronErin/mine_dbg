@@ -1,19 +1,47 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdlib.h>
 
 
-typedef char (*EncodeFunc)(void** buffer, size_t* buffer_size, void* data);
+#define DEFAULT_SEGMENT_ALLOC 1024
 
-
-// This is only to be defined in constants.
-// And lays you how serde will handle integral datatypes.
-struct DatatypePrimative{
+struct EncodeDataSegment {
+    // Most of the time DEFAULT_SEGMENT_ALLOC
+    // but can be larger
+    size_t alloc;
     size_t size;
-    const char* data_type_name;
-    const EncodeFunc encode_into_buffer;
+
+    struct EncodeDataSegment *next;
+
+    char data[];
 };
+struct CombinedDataSegment {
+    size_t size;
+    char data[];
+};
+void writeBulkDataToBuffer(struct EncodeDataSegment **head, const void *data, size_t size);
+void writeByteToBuffer(struct EncodeDataSegment **head_, char byte);
+
+static inline struct EncodeDataSegment *makeEncodeDataSegmentRoot() {
+    struct EncodeDataSegment *root = malloc(sizeof(struct EncodeDataSegment) + DEFAULT_SEGMENT_ALLOC);
+    root->alloc = DEFAULT_SEGMENT_ALLOC;
+    root->size = 0;
+    root->next = NULL;
+
+    return root;
+}
+static inline void freeEncodeDataSegment(struct EncodeDataSegment *root) {
+    while (root) {
+        struct EncodeDataSegment *next = root->next;
+        free(root);
+        root = next;
+    }
+}
 
 
+struct CombinedDataSegment *combineSegments(struct EncodeDataSegment *root);
 
 
+unsigned long readVarStyle(char **buffer, char *maxBuffer, char maxBits);
+void writeVarStyle(struct EncodeDataSegment **head_, unsigned long value);

@@ -2,7 +2,6 @@
 # this is a custom format, made to be intuitive
 # and easy to parse
 
-
 namespace("handshake_c2s")[
 	packet(0x00, "handshake")[
 		varint("protocol version"),

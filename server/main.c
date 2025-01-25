@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "proto_file.h"
 
+#include "datatypes.h"
 #include "serde.h"
 
 
@@ -19,8 +20,19 @@ int main() {
     PacketSerde_from_proto(buffer);
 
     // printf("%s\n", unescape_string("This is a test: \\X6a!"));
+    struct EncodeDataSegment *root = makeEncodeDataSegmentRoot();
+    struct EncodeDataSegment *head = root;
 
 
+    int i = -2147483648;
+    writeVarStyle(&head, *(unsigned int *) &i);
+
+    struct CombinedDataSegment *dat = combineSegments(root);
+
+    fwrite(dat->data, dat->size, 1, stdout);
+
+    freeEncodeDataSegment(root);
     free(buffer);
+    free(dat);
     return 0;
 }

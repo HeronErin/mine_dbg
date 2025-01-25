@@ -64,13 +64,13 @@ struct CombinedDataSegment* combineSegments(struct EncodeDataSegment* root){
 
 
 
-// Adapted from https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol
+// Adapted from https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol#VarInt_and_VarLong
 static char SEGMENT_BITS = 0x7F;
 static char CONTINUE_BIT = 0x80;
 
 // Reads an abrbitray sized varint from a buffer.
 // Sets errno on error. ENOMEM for out of bounds read, EINVAL for going past max bits
-unsigned long readVarStyle(char** buffer_, char* maxBuffer, char maxBits) {
+unsigned long readVarStyle(char** buffer_, char* maxBuffer, char maxBits){
     unsigned long value = 0;
     int position = 0;
 

@@ -1,7 +1,7 @@
 # server/Makefile
 
 # Compiler and flags
-CC = gcc
+CC = ccache gcc
 CFLAGS = -g -I../proto -lz
 
 # Source files and target
@@ -19,17 +19,18 @@ all: $(TARGET)
 $(TARGET): $(OBJ) $(PROTO_LIB)
 	$(CC) $(CFLAGS) -o $@ $^ -L$(PROTO_DIR) -lproto
 
-%.o: %.c
+%.o: %.c FORCE
 	$(CC) $(CFLAGS) -c $< -o $@
+FORCE:
 
-$(PROTO_LIB):
+$(PROTO_LIB): FORCE
 	$(MAKE) -C $(PROTO_DIR)
 
 clean:
 	rm -f $(OBJ) $(TARGET)
 	$(MAKE) -C $(PROTO_DIR) clean
 
-clean_run: clean all
+run:  all
 	./server
 
 .PHONY: all clean

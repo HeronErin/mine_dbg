@@ -6,6 +6,7 @@
 
 #include "PacketNode.h"
 
+
 int main() {
     FILE *fp = fopen("/home/mitchell/Documents/mc_dbg/proto/packets/1.21.4.proto", "r");
 
@@ -18,21 +19,16 @@ int main() {
     buffer[len] = '\0';
     fclose(fp);
     // PacketSerde_from_proto(buffer);
-
-    // printf("%s\n", unescape_string("This is a test: \\X6a!"));
-    struct EncodeDataSegment *root = makeEncodeDataSegmentRoot();
-    struct EncodeDataSegment *head = root;
-    // printf("Size: %llu %d\n", sizeof(PacketNode), MAX_PACKET_CHILDREN);
-
-    int i = -2147483648;
-    // writeVarStyle(&head, *(unsigned int *) &i);
-
-    struct CombinedDataSegment *dat = combineSegments(root);
-
-    fwrite(dat->data, dat->size, 1, stdout);
-
-    freeEncodeDataSegment(root);
     free(buffer);
-    free(dat);
+
+    printf("%llu\n", H_KEY("FOO"));
+
+    PacketNode *boo = PN_from_boolean(39);
+    PN_rename(boo, "boo");
+    printf(": %d\n", PN_get_boolean(boo));
+    printf(": %s\n", boo->name);
+    PN_set_boolean(boo, 1);
+    printf(": %d\n", PN_get_boolean(boo));
+
     return 0;
 }

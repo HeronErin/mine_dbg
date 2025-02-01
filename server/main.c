@@ -26,10 +26,19 @@ int main() {
     PacketNode *root = PN_new_bundle();
     PacketNode *x = PN_from_byte('Q');
     PN_rename(x, "x");
-    // PN_rename(x, "X");
-    PN_bundle_set_element(root, x);
-    printf("%d\n", x == PN_bundle_get_element_hash(root, PN_str_hash("x")));
 
+    PacketNode *y = PN_new_list();
+    PN_rename(y, "List boiiiis!");
+    for (size_t i = 0; i < 10; i++) {
+        double e = i * 0.5;
+        PN_list_add_element(y, PN_from_double(e));
+    }
+
+
+    PN_bundle_set_element(root, x);
+    PN_bundle_set_element(root, y);
+
+    PN_tree(root);
 
     return 0;
 }

@@ -39,7 +39,9 @@ enum NodeType {
     NT_UUID
 
 };
-#define PACKET_NODE_HASHMAP_SIZE 1024
+
+// Max size of both bundles AND lists
+#define PACKET_NODE_COLLECTION_SIZE 1024
 struct PacketBufferContents {
     size_t size;
     char data[];
@@ -49,14 +51,14 @@ struct PacketBufferContents {
 union __PacketNodeData {
     // For list type nodes:
     //  NT_PACKET_LIST, TODO
-    struct PacketNode_ *children[128];
+    struct PacketNode_ *children[PACKET_NODE_COLLECTION_SIZE];
 
     // Used for: NT_BUNDLE
-    struct PacketNode_ *hashmap[PACKET_NODE_HASHMAP_SIZE];
+    struct PacketNode_ *hashmap[PACKET_NODE_COLLECTION_SIZE];
 
     uint8_t boolean;
     int8_t byte_;
-    int8_t Ubyte_;
+    uint8_t Ubyte_;
 
     int16_t short_;
     uint16_t Ushort_;
@@ -179,6 +181,24 @@ static inline PacketNode *PN_new_bundle() {
 
     return ret;
 }
+static inline PacketNode *PN_new_list() {
+    PacketNode *ret = _PN_alloc(sizeof(ret->__data->children));
+    ret->type = NT_LIST;
+    ret->list_size = 0;
+    return ret;
+}
+
+static inline void PN_list_add_element(PacketNode *list, PacketNode *child) {
+    assert(list->type == NT_LIST);
+    assert(list->list_size < PACKET_NODE_COLLECTION_SIZE);
+    list->__data->children[list->list_size++] = child;
+}
+
+static inline PacketNode *PN_list_get_element(PacketNode *list, int index) {
+    assert(list->type == NT_LIST);
+    assert(index >= 0 && index < list->list_size);
+    return list->__data->children[index];
+}
 static inline void PN_free(PacketNode *node) {
     if (node->_hashmap_next)
         PN_free(node->_hashmap_next);
@@ -189,7 +209,7 @@ static inline void PN_free(PacketNode *node) {
             free(node->__data->contents);
             break;
         case NT_BUNDLE:
-            for (int i = 0; i < PACKET_NODE_HASHMAP_SIZE; i++) {
+            for (int i = 0; i < PACKET_NODE_COLLECTION_SIZE; i++) {
                 if (node->__data->hashmap[i])
                     PN_free(node->__data->hashmap[i]);
             }
@@ -213,7 +233,7 @@ static inline void PN_free(PacketNode *node) {
 static inline void PN_bundle_set_element(PacketNode *root_bundle, PacketNode *value) {
     assert(root_bundle->type == NT_BUNDLE);
     size_t hash = value->full_hash;
-    size_t modhash = hash % PACKET_NODE_HASHMAP_SIZE;
+    size_t modhash = hash % PACKET_NODE_COLLECTION_SIZE;
 
     PacketNode **hashmap_element = &root_bundle->__data->hashmap[modhash];
     while (*hashmap_element) {
@@ -232,7 +252,7 @@ static inline void PN_bundle_set_element(PacketNode *root_bundle, PacketNode *va
 
 static inline PacketNode *PN_bundle_get_element_hash(PacketNode *root_bundle, uint64_t hash) {
     assert(root_bundle->type == NT_BUNDLE);
-    size_t modhash = hash % PACKET_NODE_HASHMAP_SIZE;
+    size_t modhash = hash % PACKET_NODE_COLLECTION_SIZE;
     PacketNode *hashmap_element = root_bundle->__data->hashmap[modhash];
 
     while (hashmap_element && hashmap_element->full_hash != hash) {
@@ -288,3 +308,8 @@ _PACKET_NODE_GEN_FUNCS(double, double_, double, NT_DOUBLE)
 
 _PACKET_NODE_GEN_FUNCS(string_raw, contents, struct PacketBufferContents *, NT_STRING)
 _PACKET_NODE_GEN_FUNCS(NBT_raw, contents, struct PacketBufferContents *, NT_NBT)
+
+
+void PN_tree_(const PacketNode *node, int indent);
+
+static inline void PN_tree(const PacketNode *node) { PN_tree_(node, 0); }

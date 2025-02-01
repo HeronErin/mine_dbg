@@ -9,10 +9,9 @@
 #include "xxhash.h"
 
 enum NodeType {
-    NT_NAMESAPCE,
-
     // Hashmap style dictionary
     NT_BUNDLE,
+    NT_LIST,
 
     // Native MC datatypes (in native machine format):
     NT_BOOLEAN,
@@ -49,7 +48,7 @@ struct PacketBufferContents {
 // Not malloced by itself
 union __PacketNodeData {
     // For list type nodes:
-    // NT_NAMESAPCE, NT_PACKET_LIST, TODO
+    //  NT_PACKET_LIST, TODO
     struct PacketNode_ *children[128];
 
     // Used for: NT_BUNDLE
@@ -97,11 +96,20 @@ union __PacketNodeData {
     };
 };
 
+#define PACKET_KEY_NAME_LEN 64
+
 // Needs to be calloc-ed, otherwise name cannot be properly hashed
 struct PacketNode_ {
-    char name[32];
+    char name[PACKET_KEY_NAME_LEN];
     enum NodeType type;
 
+    // Most of the time ignore this. It is only for hashmaps when
+    // a collision occurs
+    struct PacketNode_ *_hashmap_next;
+    uint64_t full_hash;
+
+    // Only used for lists
+    int list_size;
 
     // ONLY WHAT YOU NEED IS PRESENT!
     // Holds the raw data for nodes
@@ -112,14 +120,20 @@ typedef struct PacketNode_ PacketNode;
 
 static inline PacketNode *_PN_alloc(size_t data_size) { return calloc(1, sizeof(PacketNode) + data_size); }
 
-
-static inline PacketNode *PN_rename(PacketNode *node, const char *name) {
-    size_t size = strlen(name) + 1;
-    if (size >= sizeof(node->name)) {
-        fprintf(stderr, "ERROR: PacketNode name too long: \"%s\"\n", name);
+static inline uint64_t PN_str_hash(const char *str) {
+    char temp[PACKET_KEY_NAME_LEN] = {0};
+    size_t size = strlen(str) + 1;
+    if (size >= PACKET_KEY_NAME_LEN) {
+        fprintf(stderr, "ERROR: name too long to fit in packet node key: \"%s\"\n", str);
         exit(1);
     }
-    memcpy(node->name, name, size);
+    memcpy(temp, str, size);
+    return XXH64(temp, PACKET_KEY_NAME_LEN, 0);
+}
+
+static inline PacketNode *PN_rename(PacketNode *node, const char *name) {
+    node->full_hash = PN_str_hash(name);
+    strncpy(node->name, name, PACKET_KEY_NAME_LEN - 1);
     return node;
 }
 
@@ -159,20 +173,78 @@ static inline void PN_set_string(PacketNode *node, const char *name) {
 }
 
 
-#define H_KEY(NAME) XXH64((NAME), 32, 0xFEEDBEEF69)
-
-static inline uint64_t PN_get_hashcode(PacketNode *node) {
-    if (!node->name[0]) {
-        perror("ERROR: Ilegal attempt as adding at hashing an un-named node!");
-        exit(1);
-    }
-    return H_KEY(node->name);
-}
 static inline PacketNode *PN_new_bundle() {
     PacketNode *ret = _PN_alloc(sizeof(ret->__data->hashmap));
     ret->type = NT_BUNDLE;
 
     return ret;
+}
+static inline void PN_free(PacketNode *node) {
+    if (node->_hashmap_next)
+        PN_free(node->_hashmap_next);
+
+    switch (node->type) {
+        case NT_STRING:
+        case NT_NBT:
+            free(node->__data->contents);
+            break;
+        case NT_BUNDLE:
+            for (int i = 0; i < PACKET_NODE_HASHMAP_SIZE; i++) {
+                if (node->__data->hashmap[i])
+                    PN_free(node->__data->hashmap[i]);
+            }
+            break;
+        case NT_LIST:
+            for (int i = 0; i < node->list_size; i++) {
+                if (node->__data->children[i])
+                    PN_free(node->__data->children[i]);
+            }
+            break;
+
+        default:
+    }
+
+
+    free(node);
+}
+
+// Puts an element onto a hashmap/bundle.
+// WARNING: **Takes ownership of value!**
+static inline void PN_bundle_set_element(PacketNode *root_bundle, PacketNode *value) {
+    assert(root_bundle->type == NT_BUNDLE);
+    size_t hash = value->full_hash;
+    size_t modhash = hash % PACKET_NODE_HASHMAP_SIZE;
+
+    PacketNode **hashmap_element = &root_bundle->__data->hashmap[modhash];
+    while (*hashmap_element) {
+        // Save if key of same value was found
+        // note: assuming xxhash is collision free
+        if ((*hashmap_element)->full_hash == hash) {
+            PN_free(*hashmap_element);
+            *hashmap_element = value;
+            return;
+        }
+
+        hashmap_element = &(*hashmap_element)->_hashmap_next;
+    }
+    *hashmap_element = value;
+}
+
+static inline PacketNode *PN_bundle_get_element_hash(PacketNode *root_bundle, uint64_t hash) {
+    assert(root_bundle->type == NT_BUNDLE);
+    size_t modhash = hash % PACKET_NODE_HASHMAP_SIZE;
+    PacketNode *hashmap_element = root_bundle->__data->hashmap[modhash];
+
+    while (hashmap_element && hashmap_element->full_hash != hash) {
+        hashmap_element = hashmap_element->_hashmap_next;
+    }
+
+    if (!hashmap_element)
+        return NULL;
+
+    if (hashmap_element->full_hash != hash)
+        return NULL;
+    return hashmap_element;
 }
 
 

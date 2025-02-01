@@ -21,14 +21,15 @@ int main() {
     // PacketSerde_from_proto(buffer);
     free(buffer);
 
-    printf("%llu\n", H_KEY("FOO"));
+    // printf("%llu\n", H_KEY("FOO"));
 
-    PacketNode *boo = PN_from_boolean(39);
-    PN_rename(boo, "boo");
-    printf(": %d\n", PN_get_boolean(boo));
-    printf(": %s\n", boo->name);
-    PN_set_boolean(boo, 1);
-    printf(": %d\n", PN_get_boolean(boo));
+    PacketNode *root = PN_new_bundle();
+    PacketNode *x = PN_from_byte('Q');
+    PN_rename(x, "x");
+    // PN_rename(x, "X");
+    PN_bundle_set_element(root, x);
+    printf("%d\n", x == PN_bundle_get_element_hash(root, PN_str_hash("x")));
+
 
     return 0;
 }

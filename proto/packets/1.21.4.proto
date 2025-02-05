@@ -2,6 +2,11 @@
 # this is a custom format, made to be intuitive
 # and easy to parse
 
+
+version_info(){
+    "protocol_number" : 769
+},
+
 namespace("handshake_c2s")[
 	packet(0x00, "handshake")[
 		varint("protocol version"),
@@ -27,6 +32,62 @@ namespace("handshake_c2s")[
  	packet(0x01, "ping request")[
  		long("timestamp")
  	]
+ ],
+ namespace("login_s2c")[
+    packet(0x00, "disconnect")[
+        string("reason")
+    ],
+    packet(0x01, "encryption request")[
+        string("server id", 20),
+        prefixed_byte_array("public key"),
+        prefixed_byte_array("verify token"),
+        boolean("should authenticate")
+    ],
+    packet(0x02, "login success")[
+        uuid("uuid"),
+        string("username", 16),
+        prefixed_array("properties")[
+            string("name", 64),
+            string("value"),
+            prefixed_optional( string("signature") )
+        ]
+    ],
+    packet(0x03, "set compression")[
+        varint("threshold")
+    ],
+    packet(0x04, "custom query")[
+        # Unlike plugin messages in "play" mode,
+        # these messages follow a lock-step request/response scheme,
+        # where the client is expected to respond to a request indicating
+        # whether it understood. The notchian client always responds
+        # that it hasn't understood, and sends an empty payload.
+
+        varint("message id"),
+        string("channel"),
+        byte_array("data", CONTEXT(REMAINING_BYTES()))
+    ],
+    packet(0x05, "cookie request")[
+        string("key")
+    ]
+ ],
+ namespace("login_c2s")[
+   packet(0x00, "login start")[
+        string("name", 16),
+        uuid("uuid")
+   ],
+   packet(0x01, "encryption response")[
+        prefixed_byte_array("shared secret"),
+        prefixed_byte_array("verify token")
+   ],
+   packet(0x02, "custom query answer")[
+        varint("message id"),
+        byte_array("data", CONTEXT(REMAINING_BYTES()))
+   ],
+   packet(0x03, "login acknowledged")[],
+   packet(0x04, "cookie response")[
+        string("key"),
+        prefixed_optional( prefixed_byte_array("payload") )
+   ]
  ]
 
 

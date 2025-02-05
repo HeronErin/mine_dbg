@@ -7,7 +7,7 @@ CFLAGS = -g -I../proto -lz
 # Source files and target
 SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
-TARGET = server
+TARGET = client
 
 # Proto library
 PROTO_DIR = ../proto
@@ -31,6 +31,6 @@ clean:
 	$(MAKE) -C $(PROTO_DIR) clean
 
 run:  all
-	./server
+	./$(TARGET)
 
-.PHONY: all clean
+.PHONY: all

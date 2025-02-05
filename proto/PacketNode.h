@@ -11,6 +11,7 @@
 enum NodeType {
     // Hashmap style dictionary
     NT_BUNDLE,
+
     NT_LIST,
 
     // Native MC datatypes (in native machine format):
@@ -113,6 +114,7 @@ struct PacketNode_ {
     // Only used for lists
     int list_size;
 
+
     // ONLY WHAT YOU NEED IS PRESENT!
     // Holds the raw data for nodes
     union __PacketNodeData __data[];
@@ -120,9 +122,9 @@ struct PacketNode_ {
 
 typedef struct PacketNode_ PacketNode;
 
-static inline PacketNode *_PN_alloc(size_t data_size) { return calloc(1, sizeof(PacketNode) + data_size); }
+static __always_inline PacketNode *_PN_alloc(size_t data_size) { return calloc(1, sizeof(PacketNode) + data_size); }
 
-static inline uint64_t PN_str_hash(const char *str) {
+static __always_inline uint64_t PN_str_hash(const char *str) {
     char temp[PACKET_KEY_NAME_LEN] = {0};
     size_t size = strlen(str) + 1;
     if (size >= PACKET_KEY_NAME_LEN) {
@@ -133,14 +135,14 @@ static inline uint64_t PN_str_hash(const char *str) {
     return XXH64(temp, PACKET_KEY_NAME_LEN, 0);
 }
 
-static inline PacketNode *PN_rename(PacketNode *node, const char *name) {
+static __always_inline PacketNode *PN_rename(PacketNode *node, const char *name) {
     node->full_hash = PN_str_hash(name);
     strncpy(node->name, name, PACKET_KEY_NAME_LEN - 1);
     return node;
 }
 
 
-static inline PacketNode *PN_from_string(const char *name) {
+static __always_inline PacketNode *PN_from_string(const char *name) {
     size_t size = strlen(name) + 1;
     struct PacketBufferContents *contents = malloc(size + sizeof(struct PacketBufferContents));
     PacketNode *ret = _PN_alloc(sizeof(size_t));
@@ -151,11 +153,11 @@ static inline PacketNode *PN_from_string(const char *name) {
     memcpy(contents->data, name, size);
     return ret;
 }
-static inline char *PN_get_string(PacketNode *node) {
+static __always_inline char *PN_get_string(PacketNode *node) {
     assert(node->type == NT_STRING);
     return node->__data->contents->data;
 }
-static inline void PN_set_string(PacketNode *node, const char *name) {
+static __always_inline void PN_set_string(PacketNode *node, const char *name) {
     assert(node->type == NT_STRING);
     size_t old_size = node->__data->contents->size;
     size_t new_size = strlen(name) + 1;
@@ -175,26 +177,26 @@ static inline void PN_set_string(PacketNode *node, const char *name) {
 }
 
 
-static inline PacketNode *PN_new_bundle() {
+static __always_inline PacketNode *PN_new_bundle() {
     PacketNode *ret = _PN_alloc(sizeof(ret->__data->hashmap));
     ret->type = NT_BUNDLE;
 
     return ret;
 }
-static inline PacketNode *PN_new_list() {
+static __always_inline PacketNode *PN_new_list() {
     PacketNode *ret = _PN_alloc(sizeof(ret->__data->children));
     ret->type = NT_LIST;
     ret->list_size = 0;
     return ret;
 }
 
-static inline void PN_list_add_element(PacketNode *list, PacketNode *child) {
+static __always_inline void PN_list_append(PacketNode *list, PacketNode *child) {
     assert(list->type == NT_LIST);
     assert(list->list_size < PACKET_NODE_COLLECTION_SIZE);
     list->__data->children[list->list_size++] = child;
 }
 
-static inline PacketNode *PN_list_get_element(PacketNode *list, int index) {
+static __always_inline PacketNode *PN_list_get(PacketNode *list, int index) {
     assert(list->type == NT_LIST);
     assert(index >= 0 && index < list->list_size);
     return list->__data->children[index];
@@ -230,7 +232,7 @@ static inline void PN_free(PacketNode *node) {
 
 // Puts an element onto a hashmap/bundle.
 // WARNING: **Takes ownership of value!**
-static inline void PN_bundle_set_element(PacketNode *root_bundle, PacketNode *value) {
+static __always_inline void PNB_set(PacketNode *root_bundle, PacketNode *value) {
     assert(root_bundle->type == NT_BUNDLE);
     size_t hash = value->full_hash;
     size_t modhash = hash % PACKET_NODE_COLLECTION_SIZE;
@@ -249,8 +251,8 @@ static inline void PN_bundle_set_element(PacketNode *root_bundle, PacketNode *va
     }
     *hashmap_element = value;
 }
-
-static inline PacketNode *PN_bundle_get_element_hash(PacketNode *root_bundle, uint64_t hash) {
+// Get the element of a bundle by the hash of a name
+static __always_inline PacketNode *PNB_hget(PacketNode *root_bundle, uint64_t hash) {
     assert(root_bundle->type == NT_BUNDLE);
     size_t modhash = hash % PACKET_NODE_COLLECTION_SIZE;
     PacketNode *hashmap_element = root_bundle->__data->hashmap[modhash];
@@ -266,10 +268,12 @@ static inline PacketNode *PN_bundle_get_element_hash(PacketNode *root_bundle, ui
         return NULL;
     return hashmap_element;
 }
+// Get the element on a bundle by name
+static __always_inline PacketNode *PNB_get(PacketNode *root_bundle, char *e) { return PNB_hget(root_bundle, PN_str_hash(e)); }
 
 
 #define _PACKET_NODE_INIT(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                        \
-    static inline PacketNode *PN_from_##FUNCTION_NAME_ADDON(ELEMENT_TYPE arg) {                                                                                                    \
+    static __always_inline PacketNode *PN_from_##FUNCTION_NAME_ADDON(ELEMENT_TYPE arg) {                                                                                           \
         PacketNode *ret = _PN_alloc(sizeof(ret->__data->ELEMENT_NAME));                                                                                                            \
         ret->type = ELEMENT_TYPE_ID;                                                                                                                                               \
         ret->__data->ELEMENT_NAME = arg;                                                                                                                                           \
@@ -277,19 +281,37 @@ static inline PacketNode *PN_bundle_get_element_hash(PacketNode *root_bundle, ui
     }
 
 #define _PACKET_NODE_GETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                      \
-    static inline ELEMENT_TYPE PN_get_##FUNCTION_NAME_ADDON(PacketNode *node) {                                                                                                    \
+    static __always_inline ELEMENT_TYPE PN_get_##FUNCTION_NAME_ADDON(PacketNode *node) {                                                                                           \
         assert(node->type == ELEMENT_TYPE_ID);                                                                                                                                     \
         return node->__data->ELEMENT_NAME;                                                                                                                                         \
     }
 #define _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                      \
-    static inline void PN_set_##FUNCTION_NAME_ADDON(PacketNode *node, ELEMENT_TYPE value) {                                                                                        \
+    static __always_inline void PN_set_##FUNCTION_NAME_ADDON(PacketNode *node, ELEMENT_TYPE value) {                                                                               \
         assert(node->type == ELEMENT_TYPE_ID);                                                                                                                                     \
         node->__data->ELEMENT_NAME = value;                                                                                                                                        \
     }
+#define _PACKET_BUNDLE_QUICK_SET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                 \
+    static __always_inline void PNB_set_##FUNCTION_NAME_ADDON(PacketNode *node, char *name, ELEMENT_TYPE value) {                                                                  \
+        PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value);                                                                                                                \
+        PN_rename(element, name);                                                                                                                                                  \
+        PNB_set(node, element);                                                                                                                                                    \
+    }
+#define _PACKET_BUNDLE_QUICK_GET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                 \
+    static __always_inline ELEMENT_TYPE PNB_get_##FUNCTION_NAME_ADDON(PacketNode *node, char *name) {                                                                              \
+        PacketNode *element = PNB_get(node, name);                                                                                                                                 \
+        if (!element) {                                                                                                                                                            \
+            fprintf(stderr, "Could not resolve element \"%s\" of type " #FUNCTION_NAME_ADDON "\n", name);                                                                          \
+            exit(1);                                                                                                                                                               \
+        }                                                                                                                                                                          \
+        return PN_get_##FUNCTION_NAME_ADDON(element);                                                                                                                              \
+    }
+
 #define _PACKET_NODE_GEN_FUNCS(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                   \
     _PACKET_NODE_INIT(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                            \
     _PACKET_NODE_GETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                          \
-    _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)
+    _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                          \
+    _PACKET_BUNDLE_QUICK_SET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                     \
+    _PACKET_BUNDLE_QUICK_GET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)
 
 
 _PACKET_NODE_GEN_FUNCS(boolean, boolean, int8_t, NT_BOOLEAN)
@@ -312,4 +334,4 @@ _PACKET_NODE_GEN_FUNCS(NBT_raw, contents, struct PacketBufferContents *, NT_NBT)
 
 void PN_tree_(const PacketNode *node, int indent);
 
-static inline void PN_tree(const PacketNode *node) { PN_tree_(node, 0); }
+static __always_inline void PN_tree(const PacketNode *node) { PN_tree_(node, 0); }

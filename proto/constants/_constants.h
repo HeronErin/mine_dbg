@@ -14,7 +14,7 @@
 
 
 
-
+// Keep track of the offsets used for the hashes index into the bin
 enum __constant_offsets{
 
 #undef STRING_CONSTANT
@@ -26,6 +26,8 @@ enum __constant_offsets{
 #ifndef NO_HASH_CONSTANTS
 
 #undef STRING_CONSTANT
+
+// User-facing variables, see constants.bin
 #define STRING_CONSTANT(name, value) \
     extern const uint64_t* name;\
     extern const char* name##_str;

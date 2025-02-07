@@ -16,7 +16,7 @@ int main() {
     FILE *fp = fopen("/home/mitchell/Documents/mc_dbg/proto/packets/1.21.4.proto", "r");
 
 	assert(fp != NULL);
-    printf(": %llu\n", *foo_c);
-    printf(": %llu\n", PN_str_hash(foo_c_str));
+    printf(": %llu\n", *OBJ_version_info);
+    printf(": %llu\n", PN_str_hash(OBJ_version_info_str));
     return 0;
 }

@@ -7,7 +7,8 @@ extern __thread struct GlobalErrorState* global_error_state;
 
 enum ErrorType {
     ERROR_TYPE_UNKNOWN = 0,
-    ERROR_INVALID_PACKET
+    ERROR_INVALID_PACKET,
+    ERROR_INVALID_PACKET_FORMAT
 };
 
 #define RESET_ERROR_STATE() if (global_error_state) {free(global_error_state); global_error_state = NULL;}

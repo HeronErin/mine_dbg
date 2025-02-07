@@ -53,6 +53,7 @@ features.
 */
 #define PROTO_LIST_SEGMENT_SIZE 64
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,6 +77,8 @@ struct ProtoDict {
 
 struct ProtoObject {
     char name[64];
+    uint64_t name_hash;
+
     struct ProtoList *arguments; // Never null
 
     struct ProtoList *attached_list; // Null if not set

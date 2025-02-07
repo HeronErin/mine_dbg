@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "xxhash.h"
 
 // Always *should* be set to the current string
 // being parsed, as such more detailed error info

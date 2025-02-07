@@ -10,7 +10,8 @@
 
 int main() {
     FILE *fp = fopen("/home/mitchell/Documents/mc_dbg/proto/packets/1.21.4.proto", "r");
-    SET_ERROR_STATE(ERROR_INVALID_PACKET, "%d");
 
+
+    printf("Foo!\n");
     return 0;
 }

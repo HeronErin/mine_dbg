@@ -138,7 +138,7 @@ static struct ProtoNode *assess_and_parse_singular_object(const char **input) {
     } else if (ret->type == PNT_obj) {
         const char *after_name = absorb_name(str);
         size_t len = after_name - str;
-        if (len >= sizeof(ret->object.name))
+        if (len >= MAX_PROTO_OBJ_SIZE)
             parsing_error(str, "Object name too long");
         memcpy(ret->object.name, str, len);
         ret->object.name[len] = 0;

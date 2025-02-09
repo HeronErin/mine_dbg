@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "constants.h"
 
 #include "xxhash.h"
 
@@ -99,7 +100,7 @@ union __PacketNodeData {
     };
 };
 
-#define PACKET_KEY_NAME_LEN 64
+#define PACKET_KEY_NAME_LEN MAX_STRING_CONST_SIZE
 
 // Needs to be calloc-ed, otherwise name cannot be properly hashed
 struct PacketNode_ {

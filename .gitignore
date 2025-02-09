@@ -3,3 +3,5 @@
 .idea/
 **/.idea
 server/server
+.vscode/
+.run/

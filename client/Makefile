@@ -16,7 +16,7 @@ PROTO_LIB = $(PROTO_DIR)/libproto.a
 # Rules
 all: $(TARGET)
 
-$(TARGET): $(OBJ) $(PROTO_LIB)
+$(TARGET): $(PROTO_LIB) $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ -L$(PROTO_DIR) -lproto
 
 %.o: %.c FORCE

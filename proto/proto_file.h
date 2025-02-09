@@ -59,6 +59,8 @@ features.
 #include <stdlib.h>
 #include <string.h>
 #include "constants.h"
+#define MAX_PROTO_OBJ_SIZE MAX_STRING_CONST_SIZE
+
 
 enum ProtoNodeType { PNT_UNKNOWN = 0, PNT_num, PNT_str, PNT_obj };
 enum NumberVariety { NV_INVALID, NV_INT, NV_FLOAT };
@@ -78,7 +80,7 @@ struct ProtoDict {
 };
 
 struct ProtoObject {
-    char name[MAX_STRING_CONST_SIZE];
+    char name[MAX_PROTO_OBJ_SIZE];
     uint64_t name_hash;
 
     struct ProtoList *arguments; // Never null

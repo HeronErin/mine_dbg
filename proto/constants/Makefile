@@ -12,4 +12,4 @@ generated_constants.h : gen.a
 	./gen.a
 
 clean:
-	rm -f *.o *.a *.bin
+	rm -f *.o *.a *.bin generated_constants.h

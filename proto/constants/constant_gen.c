@@ -20,7 +20,7 @@ void write_hash(FILE *file, const char* name, const char *input) {
     uint64_t value =  XXH64(temp, MAX_STRING_CONST_SIZE, 0);
 //    fwrite(&value, sizeof(uint64_t), 1, file);
 
-    fprintf(file, "#define %s %lu\n", name, value);
+    fprintf(file, "#define %s %luull\n", name, value);
 }
 
 int main() {

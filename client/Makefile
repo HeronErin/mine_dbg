@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC = ccache gcc
-CFLAGS = -g -I../proto -lz
+CFLAGS = -g -I../proto -I../proto/constants -lz
 
 # Source files and target
 SRC = $(wildcard *.c)

@@ -142,6 +142,7 @@ static struct ProtoNode *assess_and_parse_singular_object(const char **input) {
             parsing_error(str, "Object name too long");
         memcpy(ret->object.name, str, len);
         ret->object.name[len] = 0;
+        ret->object.name_hash = PN_str_hash(ret->object.name);
 
         str = skip_whitespace(after_name);
 

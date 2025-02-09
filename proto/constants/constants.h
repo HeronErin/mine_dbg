@@ -1,4 +1,10 @@
 // Provides a way to precompute constants of quick string comparison where it matters
+//
+// Usage of constants.h:
+// For each STRING_CONSTANT you see bellow it defines the following
+//   NAME = a uint64 of the xxhash of the value
+//   NAME_str = the value
+
 
 // This is NOT intended for users to redefine!
 // only change this value here!

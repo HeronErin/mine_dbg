@@ -13,27 +13,11 @@
 #define HAS_GENERATED_CONSTANTS
 
 
-
-// Keep track of the offsets used for the hashes index into the bin
-enum __constant_offsets{
-
 #undef STRING_CONSTANT
-#define STRING_CONSTANT(name, value) __CONST_OFFSET_##name,
+#define STRING_CONSTANT(name, value) extern const char* name##_str;
 #include "constants.h"
 
-};
+#include "generated_constants.h"
 
-#ifndef NO_HASH_CONSTANTS
-
-#undef STRING_CONSTANT
-
-// User-facing variables, see constants.bin
-#define STRING_CONSTANT(name, value) \
-    extern const uint64_t* name;\
-    extern const char* name##_str;
-
-#include "constants.h"
-
-#endif
 #endif
 #endif

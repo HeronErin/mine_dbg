@@ -52,11 +52,13 @@ features.
 --------------------------------------------------------------
 */
 #define PROTO_LIST_SEGMENT_SIZE 64
+#include <packet_node.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "constants.h"
 
 enum ProtoNodeType { PNT_UNKNOWN = 0, PNT_num, PNT_str, PNT_obj };
 enum NumberVariety { NV_INVALID, NV_INT, NV_FLOAT };
@@ -76,7 +78,7 @@ struct ProtoDict {
 };
 
 struct ProtoObject {
-    char name[64];
+    char name[MAX_STRING_CONST_SIZE];
     uint64_t name_hash;
 
     struct ProtoList *arguments; // Never null

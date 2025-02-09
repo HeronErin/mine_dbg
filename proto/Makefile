@@ -5,12 +5,12 @@ CC = ccache gcc
 CFLAGS = -g -I. -lz -I../libs -Iconstants -march=native
 
 # Source files and target
-SRC = $(wildcard *.c) constants/constants.c
+SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
 TARGET = libproto.a
 
 # Default target
-all: constants/constants.bin $(TARGET)
+all: constants/generated_constants.h $(TARGET)
 
 $(TARGET): $(OBJ)
 	ar rcs $@ $^
@@ -18,7 +18,7 @@ $(TARGET): $(OBJ)
 %.o: %.c FORCE
 	$(CC) $(CFLAGS) -c $< -o $@
 
-constants/constants.bin : constants/constants.h
+constants/generated_constants.h : constants/constants.h
 	$(MAKE) -C constants
 
 FORCE:

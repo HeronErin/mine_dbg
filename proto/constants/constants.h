@@ -6,11 +6,13 @@
 //   NAME_str = the value
 
 
-// This is NOT intended for users to redefine!
-// only change this value here!
-#ifndef MAX_STRING_CONST_SIZE
+
+#ifndef CONSTANTS_H
 #define MAX_STRING_CONST_SIZE 64
+
+#define CONSTANTS_H
 #endif
+
 
 #include "_constants.h"
 

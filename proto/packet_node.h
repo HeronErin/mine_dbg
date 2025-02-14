@@ -34,6 +34,7 @@ enum NodeType {
     // Binary container type values
     NT_STRING,
     NT_NBT,
+    NT_BYTE_ARRAY,
 
     // Custom MC objects
     NT_POSITION,
@@ -42,6 +43,14 @@ enum NodeType {
 
 };
 
+
+
+struct MC_enumValue {
+    long long value;
+    const char* string;
+};
+
+
 // Max size of both bundles AND lists
 #define PACKET_NODE_COLLECTION_SIZE 1024
 struct PacketBufferContents {
@@ -49,6 +58,10 @@ struct PacketBufferContents {
     char data[];
 };
 
+struct MC_uuid{
+    uint64_t uuid_high;
+    uint64_t uuid_low;
+};
 // Not malloced by itself
 union __PacketNodeData {
     // For list type nodes:
@@ -58,20 +71,29 @@ union __PacketNodeData {
     // Used for: NT_BUNDLE
     struct PacketNode_ *hashmap[PACKET_NODE_COLLECTION_SIZE];
 
+
     uint8_t boolean;
-    int8_t byte_;
-    uint8_t Ubyte_;
 
-    int16_t short_;
-    uint16_t Ushort_;
+    // Any of these _could_ be an enum
+    struct {
+        union {
+            int8_t byte_;
+            uint8_t Ubyte_;
 
-    int32_t int_;
-    int32_t varint;
-    uint32_t Uint_;
+            int16_t short_;
+            uint16_t Ushort_;
 
-    int64_t long_;
-    int64_t varlong;
-    uint64_t Ulong_;
+            int32_t int_;
+            int32_t varint;
+            uint32_t Uint_;
+
+            int64_t long_;
+            int64_t varlong;
+            uint64_t Ulong_;
+        };
+    };
+
+
 
     float float_;
     double double_;
@@ -94,10 +116,7 @@ union __PacketNodeData {
     };
 
     // NT_UUID
-    struct {
-        uint64_t uuid_high;
-        uint64_t uuid_low;
-    };
+    struct MC_uuid uuid;
 };
 
 #define PACKET_KEY_NAME_LEN MAX_STRING_CONST_SIZE
@@ -296,7 +315,12 @@ static __always_inline PacketNode *PNB_get(PacketNode *root_bundle, char *e) { r
         PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value);                                                                                                                \
         PN_rename(element, name);                                                                                                                                                  \
         PNB_set(node, element);                                                                                                                                                    \
-    }
+    }\
+    static __always_inline void _PNB_set_with_hash_##FUNCTION_NAME_ADDON(PacketNode *node, char *name, uint64_t hash, ELEMENT_TYPE value){\
+        PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value); \
+        strncpy(node->name, name, PACKET_KEY_NAME_LEN - 1);\
+        node->full_hash = hash; \
+}
 #define _PACKET_BUNDLE_QUICK_GET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                 \
     static __always_inline ELEMENT_TYPE PNB_get_##FUNCTION_NAME_ADDON(PacketNode *node, char *name) {                                                                              \
         PacketNode *element = PNB_get(node, name);                                                                                                                                 \
@@ -328,8 +352,10 @@ _PACKET_NODE_GEN_FUNCS(ulong, Ulong_, uint64_t, NT_ULONG)
 _PACKET_NODE_GEN_FUNCS(varlong, varlong, uint64_t, NT_VARLONG)
 _PACKET_NODE_GEN_FUNCS(float, float_, float, NT_FLOAT)
 _PACKET_NODE_GEN_FUNCS(double, double_, double, NT_DOUBLE)
+_PACKET_NODE_GEN_FUNCS(uuid, uuid, struct MC_uuid, NT_UUID)
 
 _PACKET_NODE_GEN_FUNCS(string_raw, contents, struct PacketBufferContents *, NT_STRING)
+_PACKET_NODE_GEN_FUNCS(byte_array_raw, contents, struct PacketBufferContents *, NT_BYTE_ARRAY)
 _PACKET_NODE_GEN_FUNCS(NBT_raw, contents, struct PacketBufferContents *, NT_NBT)
 
 

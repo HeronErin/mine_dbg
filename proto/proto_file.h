@@ -89,12 +89,27 @@ struct ProtoObject {
     struct ProtoDict *attached_dict; // Null if not set
 };
 
+struct ResultingNumber {
+    bool is_float;
+    union {
+        double d;
+        long long ll;
+    };
+};
+
 // A proto node can NEVER contain Lists or Dicts, as these cannot be on their
 // own
 struct ProtoNode {
     enum ProtoNodeType type;
     union {
-        char raw_data[512]; // Used in num and str
+        struct{
+            char raw_data[512]; // Used in num and str
+
+            union{
+                struct ResultingNumber parsed_number;
+                char* escaped_string;
+            };
+        };
         struct ProtoObject object; // Used in PNT_obj
     };
 };
@@ -107,18 +122,6 @@ void free_proto_dict(struct ProtoDict *dict);
 void debug_print_proto_dict(const struct ProtoDict *dict, int level);
 void debug_print_proto_list(const struct ProtoList *list, int level);
 void debug_print_proto_node(struct ProtoNode *node, int level);
-
-// Takes a string, handles escapes, makes a new unescaped string.
-// You take ownership of newly created string
-char *unescape_string(const char *str);
-struct ResultingNumber {
-    bool is_float;
-    union {
-        double d;
-        long long ll;
-    };
-};
-struct ResultingNumber proto_node_number(struct ProtoNode *node);
 
 static __always_inline void assert_proto_node_type(struct ProtoNode *node, enum ProtoNodeType type) {
     if (node->type != type) {

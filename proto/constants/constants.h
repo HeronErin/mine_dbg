@@ -18,13 +18,28 @@
 STRING_CONSTANT(OBJ_version_info, "version_info")
 STRING_CONSTANT(OBJ_namespace, "namespace")
 STRING_CONSTANT(OBJ_packet, "packet")
+STRING_CONSTANT(OBJ_enum, "enum")
+STRING_CONSTANT(OBJ_enums, "enums")
 // Proto file datatype object names
 STRING_CONSTANT(OBJ_varint, "varint")
-STRING_CONSTANT(OBJ_string, "string")
-STRING_CONSTANT(OBJ_Ushort, "Ushort")
+STRING_CONSTANT(OBJ_varlong, "varlong")
 STRING_CONSTANT(OBJ_varint_enum, "varint_enum")
+
+STRING_CONSTANT(OBJ_string, "string")
+
+STRING_CONSTANT(OBJ_byte, "byte")
+STRING_CONSTANT(OBJ_Ubyte, "Ubyte")
+
+STRING_CONSTANT(OBJ_short, "short")
+STRING_CONSTANT(OBJ_Ushort, "Ushort")
+
+STRING_CONSTANT(OBJ_int, "int")
+STRING_CONSTANT(OBJ_Uint, "Uint")
+
+STRING_CONSTANT(OBJ_Ulong, "Ulong")
 STRING_CONSTANT(OBJ_long, "long")
 STRING_CONSTANT(OBJ_boolean, "boolean")
+
 STRING_CONSTANT(OBJ_uuid, "uuid")
 STRING_CONSTANT(OBJ_prefixed_byte_array, "prefixed_byte_array")
 STRING_CONSTANT(OBJ_prefixed_array, "prefixed_array")

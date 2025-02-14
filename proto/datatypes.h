@@ -43,5 +43,5 @@ static inline void freeEncodeDataSegment(struct EncodeDataSegment *root) {
 struct CombinedDataSegment *combineSegments(struct EncodeDataSegment *root);
 
 
-unsigned long readVarStyle(char **buffer, char *maxBuffer, char maxBits);
+unsigned long readVarStyle(const char **buffer, const char *maxBuffer, char maxBits);
 void writeVarStyle(struct EncodeDataSegment **head_, unsigned long value);

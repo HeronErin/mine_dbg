@@ -68,7 +68,7 @@ void PN_tree_(const PacketNode *node, int indent) {
             printf("ANGLE: %u", node->__data->_raw_angle);
             break;
         case NT_UUID:
-            printf("UUID: (%llu, %llu)", (unsigned long long) node->__data->uuid_high, (unsigned long long) node->__data->uuid_low);
+            printf("UUID: (%llu, %llu)", (unsigned long long) node->__data->uuid.uuid_high, (unsigned long long) node->__data->uuid.uuid_low);
             break;
         default:
             printf("UNKNOWN");

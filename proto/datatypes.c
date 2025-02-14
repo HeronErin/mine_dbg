@@ -68,13 +68,13 @@ struct CombinedDataSegment* combineSegments(struct EncodeDataSegment* root){
 static char SEGMENT_BITS = 0x7F;
 static char CONTINUE_BIT = 0x80;
 
-// Reads an abrbitray sized varint from a buffer.
+// Reads an arbitrary sized varint from a buffer.
 // Sets errno on error. ENOMEM for out of bounds read, EINVAL for going past max bits
-unsigned long readVarStyle(char** buffer_, char* maxBuffer, char maxBits){
+unsigned long readVarStyle(const char** buffer_, const char* maxBuffer, char maxBits){
     unsigned long value = 0;
     int position = 0;
 
-    char* buffer = *buffer_;
+    const char* buffer = *buffer_;
 
     while (1) {
         char current = *(buffer++);

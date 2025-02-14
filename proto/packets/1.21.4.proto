@@ -7,16 +7,22 @@ version_info(){
     "protocol_number" : 769
 },
 
+# Enums are pre-declared so that
+# they can be reused.
+enums(){
+    "next state": enum(){
+         1: "status",
+         2: "login",
+         3: "transfer"
+    }
+},
+
 namespace("handshake_c2s")[
 	packet(0x00, "handshake")[
 		varint("protocol version"),
 		string("server address", 255),
 		Ushort("port"),
-		varint_enum("next state"){
-			1: "status",
-			2: "login",
-			3: "transfer"
-		}
+		varint("next state", enum("next state"))
 	]
 ],
  namespace("status_s2c")[

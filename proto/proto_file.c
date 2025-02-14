@@ -56,6 +56,124 @@ __attribute__((noreturn)) static void parsing_error(const char *error_loc, const
 }
 
 
+
+
+static char *unescape_string(const char *in) {
+    char *out = calloc(strlen(in) + 1, sizeof(char));
+    char *out_ptr = out;
+    while (*in) {
+        if (*in != '\\') {
+            *(out_ptr++) = *(in++);
+            continue;
+        }
+
+        in++;
+        switch (*in) {
+            case 'a':
+                *(out_ptr++) = '\a';
+                break;
+            case 'b':
+                *(out_ptr++) = '\b';
+                break;
+            case 'f':
+                *(out_ptr++) = '\f';
+                break;
+            case 'n':
+                *(out_ptr++) = '\n';
+                break;
+            case 'r':
+                *(out_ptr++) = '\r';
+                break;
+            case 't':
+                *(out_ptr++) = '\t';
+                break;
+            case 'v':
+                *(out_ptr++) = '\v';
+                break;
+            case '\\':
+                *(out_ptr++) = '\\';
+                break;
+            case '\'':
+                *(out_ptr++) = '\'';
+                break;
+            case '"':
+                *(out_ptr++) = '"';
+                break;
+            case 'X':
+            case 'x':
+                char high = tolower(*(++in));
+                char low = tolower(*(++in));
+                assert(('0' <= high && high <= '9') || ('a' <= high && high <= 'f'));
+                assert(('0' <= low && low <= '9') || ('a' <= low && low <= 'f'));
+
+                char out = low <= '9' ? low - '0' : low - 'a' + 0xa;
+                out |= (high <= '9' ? high - '0' : high - 'a' + 0xa) << 4;
+                *(out_ptr++) = out;
+                break;
+            default:
+                *(out_ptr++) = '\\';
+                *(out_ptr++) = *in;
+        }
+        in++;
+    }
+    return out;
+}
+
+static struct ResultingNumber proto_node_number(struct ProtoNode *node) {
+    assert(node->type == PNT_num);
+
+    char *number = node->raw_data;
+    bool is_negative = *number == '-';
+    number += is_negative;
+    if (!*number)
+        goto INVALID;
+
+
+    bool is_decimal = false;
+    for (char *itr = number; *itr; itr++)
+        if (*itr == '.') {
+            is_decimal = true;
+            break;
+        }
+    if (is_decimal) {
+        double d = strtod(number, NULL);
+        if (errno != 0)
+            goto INVALID;
+        return (struct ResultingNumber) {
+                .is_float = true,
+                .d = is_negative ? -d : d,
+        };
+    }
+
+
+    int base = 10;
+    if (number[0] == '0' && (number[1] == 'x' || number[1] == 'X')) {
+        number += 2;
+        if (!*number)
+            goto INVALID;
+        base = 16;
+    } else if (number[0] == '0' && number[1] == 'b') {
+        number += 2;
+        if (!*number)
+            goto INVALID;
+        base = 2;
+    }
+    errno = 0;
+    long long result = strtoll(number, NULL, base);
+    if (errno != 0)
+        goto INVALID;
+
+    return (struct ResultingNumber) {
+            .is_float = false,
+            .ll = is_negative ? -result : result,
+    };
+INVALID:
+    fprintf(stderr, "Cannot parse number: %s\n", node->raw_data);
+    exit(1);
+}
+
+
+
 static struct ProtoList *proto_list_parse(const char **input, char list_mode);
 
 const char *skip_whitespace(const char *str) {
@@ -114,6 +232,8 @@ static struct ProtoNode *assess_and_parse_singular_object(const char **input) {
 
         memcpy(ret->raw_data, str, len);
         ret->raw_data[len] = 0;
+        ret->parsed_number = proto_node_number(ret);
+
 
         str = after;
     } else if (ret->type == PNT_str) {
@@ -135,6 +255,9 @@ static struct ProtoNode *assess_and_parse_singular_object(const char **input) {
         if (len >= sizeof(ret->raw_data))
             parsing_error(initial, "String too long");
         memcpy(ret->raw_data, initial, len);
+        ret->raw_data[len] = 0;
+
+        ret->escaped_string = unescape_string(ret->raw_data);
     } else if (ret->type == PNT_obj) {
         const char *after_name = absorb_name(str);
         size_t len = after_name - str;
@@ -383,116 +506,3 @@ void debug_print_proto_list(const struct ProtoList *list, int level) {
 }
 
 
-char *unescape_string(const char *in) {
-    char *out = calloc(strlen(in) + 1, sizeof(char));
-    char *out_ptr = out;
-    while (*in) {
-        if (*in != '\\') {
-            *(out_ptr++) = *(in++);
-            continue;
-        }
-
-        in++;
-        switch (*in) {
-            case 'a':
-                *(out_ptr++) = '\a';
-                break;
-            case 'b':
-                *(out_ptr++) = '\b';
-                break;
-            case 'f':
-                *(out_ptr++) = '\f';
-                break;
-            case 'n':
-                *(out_ptr++) = '\n';
-                break;
-            case 'r':
-                *(out_ptr++) = '\r';
-                break;
-            case 't':
-                *(out_ptr++) = '\t';
-                break;
-            case 'v':
-                *(out_ptr++) = '\v';
-                break;
-            case '\\':
-                *(out_ptr++) = '\\';
-                break;
-            case '\'':
-                *(out_ptr++) = '\'';
-                break;
-            case '"':
-                *(out_ptr++) = '"';
-                break;
-            case 'X':
-            case 'x':
-                char high = tolower(*(++in));
-                char low = tolower(*(++in));
-                assert(('0' <= high && high <= '9') || ('a' <= high && high <= 'f'));
-                assert(('0' <= low && low <= '9') || ('a' <= low && low <= 'f'));
-
-                char out = low <= '9' ? low - '0' : low - 'a' + 0xa;
-                out |= (high <= '9' ? high - '0' : high - 'a' + 0xa) << 4;
-                *(out_ptr++) = out;
-                break;
-            default:
-                *(out_ptr++) = '\\';
-                *(out_ptr++) = *in;
-        }
-        in++;
-    }
-    return out;
-}
-
-struct ResultingNumber proto_node_number(struct ProtoNode *node) {
-    assert(node->type == PNT_num);
-
-    char *number = node->raw_data;
-    bool is_negative = *number == '-';
-    number += is_negative;
-    if (!*number)
-        goto INVALID;
-
-
-    bool is_decimal = false;
-    for (char *itr = number; *itr; itr++)
-        if (*itr == '.') {
-            is_decimal = true;
-            break;
-        }
-    if (is_decimal) {
-        double d = strtod(number, NULL);
-        if (errno != 0)
-            goto INVALID;
-        return (struct ResultingNumber) {
-                .is_float = true,
-                .d = is_negative ? -d : d,
-        };
-    }
-
-
-    int base = 10;
-    if (number[0] == '0' && (number[1] == 'x' || number[1] == 'X')) {
-        number += 2;
-        if (!*number)
-            goto INVALID;
-        base = 16;
-    } else if (number[0] == '0' && number[1] == 'b') {
-        number += 2;
-        if (!*number)
-            goto INVALID;
-        base = 2;
-    }
-    errno = 0;
-    long long result = strtoll(number, NULL, base);
-    if (errno != 0)
-        goto INVALID;
-
-    return (struct ResultingNumber) {
-            .is_float = false,
-            .ll = is_negative ? -result : result,
-    };
-INVALID:
-    fprintf(stderr, "Cannot parse number: %s\n", node->raw_data);
-    exit(1);
-}

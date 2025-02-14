@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Deps
-      run: apt-get install ccache zlib1g-dev
+      run: sudo apt-get install ccache zlib1g-dev
     
     # Does not actually do anything substantial yet, just compile it.
     - name: make

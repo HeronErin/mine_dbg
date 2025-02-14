@@ -44,10 +44,9 @@ enum NodeType {
 };
 
 
-
 struct MC_enumValue {
     long long value;
-    const char* string;
+    const char *string;
 };
 
 
@@ -58,7 +57,7 @@ struct PacketBufferContents {
     char data[];
 };
 
-struct MC_uuid{
+struct MC_uuid {
     uint64_t uuid_high;
     uint64_t uuid_low;
 };
@@ -92,7 +91,6 @@ union __PacketNodeData {
             uint64_t Ulong_;
         };
     };
-
 
 
     float float_;
@@ -196,7 +194,6 @@ static __always_inline void PN_set_string(PacketNode *node, const char *name) {
     node->__data->contents = contents;
 }
 
-
 static __always_inline PacketNode *PN_new_bundle() {
     PacketNode *ret = _PN_alloc(sizeof(ret->__data->hashmap));
     ret->type = NT_BUNDLE;
@@ -292,50 +289,51 @@ static __always_inline PacketNode *PNB_hget(PacketNode *root_bundle, uint64_t ha
 static __always_inline PacketNode *PNB_get(PacketNode *root_bundle, char *e) { return PNB_hget(root_bundle, PN_str_hash(e)); }
 
 
-#define _PACKET_NODE_INIT(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                        \
-    static __always_inline PacketNode *PN_from_##FUNCTION_NAME_ADDON(ELEMENT_TYPE arg) {                                                                                           \
-        PacketNode *ret = _PN_alloc(sizeof(ret->__data->ELEMENT_NAME));                                                                                                            \
-        ret->type = ELEMENT_TYPE_ID;                                                                                                                                               \
-        ret->__data->ELEMENT_NAME = arg;                                                                                                                                           \
-        return ret;                                                                                                                                                                \
+#define _PACKET_NODE_INIT(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                \
+    static __always_inline PacketNode *PN_from_##FUNCTION_NAME_ADDON(ELEMENT_TYPE arg) {                                                   \
+        PacketNode *ret = _PN_alloc(sizeof(ret->__data->ELEMENT_NAME));                                                                    \
+        ret->type = ELEMENT_TYPE_ID;                                                                                                       \
+        ret->__data->ELEMENT_NAME = arg;                                                                                                   \
+        return ret;                                                                                                                        \
     }
 
-#define _PACKET_NODE_GETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                      \
-    static __always_inline ELEMENT_TYPE PN_get_##FUNCTION_NAME_ADDON(PacketNode *node) {                                                                                           \
-        assert(node->type == ELEMENT_TYPE_ID);                                                                                                                                     \
-        return node->__data->ELEMENT_NAME;                                                                                                                                         \
+#define _PACKET_NODE_GETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                              \
+    static __always_inline ELEMENT_TYPE PN_get_##FUNCTION_NAME_ADDON(PacketNode *node) {                                                   \
+        assert(node->type == ELEMENT_TYPE_ID);                                                                                             \
+        return node->__data->ELEMENT_NAME;                                                                                                 \
     }
-#define _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                      \
-    static __always_inline void PN_set_##FUNCTION_NAME_ADDON(PacketNode *node, ELEMENT_TYPE value) {                                                                               \
-        assert(node->type == ELEMENT_TYPE_ID);                                                                                                                                     \
-        node->__data->ELEMENT_NAME = value;                                                                                                                                        \
+#define _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                              \
+    static __always_inline void PN_set_##FUNCTION_NAME_ADDON(PacketNode *node, ELEMENT_TYPE value) {                                       \
+        assert(node->type == ELEMENT_TYPE_ID);                                                                                             \
+        node->__data->ELEMENT_NAME = value;                                                                                                \
     }
-#define _PACKET_BUNDLE_QUICK_SET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                 \
-    static __always_inline void PNB_set_##FUNCTION_NAME_ADDON(PacketNode *node, char *name, ELEMENT_TYPE value) {                                                                  \
-        PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value);                                                                                                                \
-        PN_rename(element, name);                                                                                                                                                  \
-        PNB_set(node, element);                                                                                                                                                    \
-    }\
-    static __always_inline void _PNB_set_with_hash_##FUNCTION_NAME_ADDON(PacketNode *node, char *name, uint64_t hash, ELEMENT_TYPE value){\
-        PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value); \
-        strncpy(node->name, name, PACKET_KEY_NAME_LEN - 1);\
-        node->full_hash = hash; \
-}
-#define _PACKET_BUNDLE_QUICK_GET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                 \
-    static __always_inline ELEMENT_TYPE PNB_get_##FUNCTION_NAME_ADDON(PacketNode *node, char *name) {                                                                              \
-        PacketNode *element = PNB_get(node, name);                                                                                                                                 \
-        if (!element) {                                                                                                                                                            \
-            fprintf(stderr, "Could not resolve element \"%s\" of type " #FUNCTION_NAME_ADDON "\n", name);                                                                          \
-            exit(1);                                                                                                                                                               \
-        }                                                                                                                                                                          \
-        return PN_get_##FUNCTION_NAME_ADDON(element);                                                                                                                              \
+#define _PACKET_BUNDLE_QUICK_SET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                         \
+    static __always_inline void PNB_set_##FUNCTION_NAME_ADDON(PacketNode *node, char *name, ELEMENT_TYPE value) {                          \
+        PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value);                                                                        \
+        PN_rename(element, name);                                                                                                          \
+        PNB_set(node, element);                                                                                                            \
+    }                                                                                                                                      \
+    static __always_inline void _PNB_set_with_hash_##FUNCTION_NAME_ADDON(PacketNode *node, char *name, uint64_t hash,                      \
+                                                                         ELEMENT_TYPE value) {                                             \
+        PacketNode *element = PN_from_##FUNCTION_NAME_ADDON(value);                                                                        \
+        strncpy(node->name, name, PACKET_KEY_NAME_LEN - 1);                                                                                \
+        node->full_hash = hash;                                                                                                            \
+    }
+#define _PACKET_BUNDLE_QUICK_GET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                         \
+    static __always_inline ELEMENT_TYPE PNB_get_##FUNCTION_NAME_ADDON(PacketNode *node, char *name) {                                      \
+        PacketNode *element = PNB_get(node, name);                                                                                         \
+        if (!element) {                                                                                                                    \
+            fprintf(stderr, "Could not resolve element \"%s\" of type " #FUNCTION_NAME_ADDON "\n", name);                                  \
+            exit(1);                                                                                                                       \
+        }                                                                                                                                  \
+        return PN_get_##FUNCTION_NAME_ADDON(element);                                                                                      \
     }
 
-#define _PACKET_NODE_GEN_FUNCS(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                   \
-    _PACKET_NODE_INIT(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                            \
-    _PACKET_NODE_GETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                          \
-    _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                          \
-    _PACKET_BUNDLE_QUICK_SET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                                                     \
+#define _PACKET_NODE_GEN_FUNCS(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                           \
+    _PACKET_NODE_INIT(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                    \
+    _PACKET_NODE_GETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                  \
+    _PACKET_NODE_SETTER(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                                  \
+    _PACKET_BUNDLE_QUICK_SET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)                                             \
     _PACKET_BUNDLE_QUICK_GET(FUNCTION_NAME_ADDON, ELEMENT_NAME, ELEMENT_TYPE, ELEMENT_TYPE_ID)
 
 

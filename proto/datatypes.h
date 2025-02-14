@@ -13,7 +13,6 @@ struct EncodeDataSegment {
     size_t size;
 
     struct EncodeDataSegment *next;
-
     char data[];
 };
 struct CombinedDataSegment {

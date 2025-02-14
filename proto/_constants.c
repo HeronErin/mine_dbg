@@ -7,8 +7,5 @@
 
 
 // Just define the variables
-#define STRING_CONSTANT(name, value) const char* name##_str = value;
+#define STRING_CONSTANT(name, value) const char *name##_str = value;
 #include "constants.h"
-
-
-

@@ -1,33 +1,33 @@
 #pragma once
+#include <stdint.h>
 #include "packet_node.h"
 #include "proto_file.h"
-#include <stdint.h>
 
 #define ENUM_REGISTRY_SIZE 1024
 
 struct PacketDeclaration {
-    const char* name;
-    struct ProtoList* definition;
+    const char *name;
+    struct ProtoList *definition;
 };
 
 struct EnumRegistryEntry {
-    char* name;
+    char *name;
     uint64_t name_hash;
 
     // Hashmaps need this
-    struct EnumRegistryEntry* next;
+    struct EnumRegistryEntry *next;
 };
-
 
 
 // Assumes that you provide the correct packet deffinition,
 // the entire packet is presant, uncompressed, and unencrypted
 // see: error_handling.h for what null means
-PacketNode* deserialize_packet(struct ProtoList* packets_def, const char* buffer, size_t size);
+PacketNode *deserialize_packet(struct ProtoList *packets_def, const char *buffer, size_t size);
 
 
 // Simular to deserialize_packet, but allowing for multiple layers down
-PacketNode* _deserialize_packet(PacketNode** parents, int packet_deph, struct ProtoList* packets_def, const char** buffer, const char* max_buffer);
+PacketNode *_deserialize_packet(PacketNode **parents, int packet_deph, struct ProtoList *packets_def, const char **buffer,
+                                const char *max_buffer);
 
 typedef struct {
     char name[64];
@@ -39,22 +39,21 @@ typedef struct {
 #define MAX_NAMESPACES 16
 typedef struct {
     int protocol_number;
-    struct ProtoList* master_proto_file;
+    struct ProtoList *master_proto_file;
 
     // With the small amount of namespaces, it makes no sense to make them a hashmap
     // so just strcmp them!
-    NameSpaceSerde* namespaces[MAX_NAMESPACES];
-
+    NameSpaceSerde *namespaces[MAX_NAMESPACES];
 
     // Hashmap, by enum name, of all the registered enums
     // in the proto file.
-    struct EnumRegistryEntry* enum_registry[ENUM_REGISTRY_SIZE];
+    struct EnumRegistryEntry *enum_registry[ENUM_REGISTRY_SIZE];
 
 } VersionSerde;
 
 // On error will exit the program. It can only fail if the proto file is malformed
-VersionSerde* create_version_serde(const char* proto_file_contents);
+VersionSerde *create_version_serde(const char *proto_file_contents);
 
 
 // Returns NULL if not found, and sets error state
-NameSpaceSerde* get_namespace(VersionSerde* version, const char* name);
+NameSpaceSerde *get_namespace(VersionSerde *version, const char *name);

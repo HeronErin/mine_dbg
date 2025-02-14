@@ -56,8 +56,6 @@ __attribute__((noreturn)) static void parsing_error(const char *error_loc, const
 }
 
 
-
-
 static char *unescape_string(const char *in) {
     char *out = calloc(strlen(in) + 1, sizeof(char));
     char *out_ptr = out;
@@ -145,7 +143,6 @@ static struct ResultingNumber proto_node_number(struct ProtoNode *node) {
         };
     }
 
-
     int base = 10;
     if (number[0] == '0' && (number[1] == 'x' || number[1] == 'X')) {
         number += 2;
@@ -171,7 +168,6 @@ INVALID:
     fprintf(stderr, "Cannot parse number: %s\n", node->raw_data);
     exit(1);
 }
-
 
 
 static struct ProtoList *proto_list_parse(const char **input, char list_mode);
@@ -504,5 +500,3 @@ void debug_print_proto_list(const struct ProtoList *list, int level) {
     if (list->next)
         debug_print_proto_list(list->next, level);
 }
-
-

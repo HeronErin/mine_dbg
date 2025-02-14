@@ -102,12 +102,12 @@ struct ResultingNumber {
 struct ProtoNode {
     enum ProtoNodeType type;
     union {
-        struct{
+        struct {
             char raw_data[512]; // Used in num and str
 
-            union{
+            union {
                 struct ResultingNumber parsed_number;
-                char* escaped_string;
+                char *escaped_string;
             };
         };
         struct ProtoObject object; // Used in PNT_obj
@@ -159,7 +159,8 @@ static __always_inline struct ProtoNode *get_argument_of_type(struct ProtoNode *
     }
     if (arg->type != type) {
         debug_print_proto_node(node, 0);
-        fprintf(stderr, "Error: Proto node of name \"%s\" has incorrect type at index %d, needed: %d, got: %d \n", node->object.name, index, type, arg->type);
+        fprintf(stderr, "Error: Proto node of name \"%s\" has incorrect type at index %d, needed: %d, got: %d \n", node->object.name, index,
+                type, arg->type);
         exit(2);
     }
     return arg;

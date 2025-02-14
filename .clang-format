@@ -6,7 +6,7 @@ AccessModifierOffset: -4
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignOperands: true
-AlignTrailingComments: false
+AlignTrailingComments: true
 AlwaysBreakTemplateDeclarations: Yes
 BraceWrapping:
   AfterCaseLabel: false
@@ -28,7 +28,7 @@ BraceWrapping:
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
-ColumnLimit: 180
+ColumnLimit: 140
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ContinuationIndentWidth: 8
 IncludeCategories:
@@ -48,7 +48,7 @@ MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
 SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: false
-SpaceBeforeRangeBasedForLoopColon: false
+SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
 SpacesInAngles: false
 SpacesInConditionalStatement: false
